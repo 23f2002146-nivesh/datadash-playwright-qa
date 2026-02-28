@@ -4,27 +4,35 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
-  const seeds = [44,45,46,47,48,49,50,51,52,53];
-  let totalSum = 0;
+  const base = "https://sanand0.github.io/tdsdata/crawl_html/";
 
-  for (const seed of seeds) {
-    const url = `https://sanand0.github.io/tdsdata/js_table/?seed=${seed}`;
-    await page.goto(url, { waitUntil: "networkidle" });
+  let total = 0;
 
-    // Wait for table to render (important - JS generated)
-    await page.waitForSelector("table");
+  await page.goto(base);
 
-    const numbers = await page.$$eval("table td", cells =>
-      cells
-        .map(cell => parseFloat(cell.innerText))
-        .filter(n => !isNaN(n))
+  // Get all folder links
+  const folders = await page.$$eval("a", links =>
+    links.map(a => a.href).filter(href => href.endsWith("/"))
+  );
+
+  for (const folder of folders) {
+    await page.goto(folder);
+
+    const files = await page.$$eval("a", links =>
+      links.map(a => a.textContent.trim())
     );
 
-    const pageSum = numbers.reduce((a, b) => a + b, 0);
-    totalSum += pageSum;
+    for (const file of files) {
+      if (file.endsWith(".html")) {
+        const first = file[0].toUpperCase();
+        if (first >= "B" && first <= "V") {
+          total++;
+        }
+      }
+    }
   }
 
-  console.log("FINAL_TOTAL_SUM=" + totalSum);
+  console.log("TOTAL_FILES=" + total);
 
   await browser.close();
 })();
